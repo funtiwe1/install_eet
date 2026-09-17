@@ -5,3 +5,14 @@
     - добавил exe для chloe и grey_dog
     - поменял файлы в модах LCA и LCA_EXPLICIT и Lichdom для автоматической установки
     - добавил удаленеие папок nstosc и dstosc
+  - ошибка: ./SETUP-STRATAGEMS.DEBUG:ERROR: [greywolf.bcs] -> [override/greywolf.bcs] Patching Failed (COPY) (Parsing.Parse_error)
+                      ([INNER_PATCH_SAVE "SC%LNL%%data%SC%LNL%".BCS] LEXER ERROR at line 2 column 1-3
+                    Near Text: CSC
+                    	invalid keyword [CSC]
+
+                    [INNER_PATCH_SAVE "SC%LNL%%data%SC%LNL%".BCS]  ERROR at line 2 column 1-3
+                    Near Text: CSC
+                    	Parsing.Parse_error
+                    ERROR: parsing [INNER_PATCH_SAVE "SC%LNL%%data%SC%LNL%".BCS]: Parsing.Parse_error
+                    ERROR: [greywolf.bcs] -> [override/greywolf.bcs] Patching Failed (COPY) (Parsing.Parse_error)
+                    Stopping installation because of error.)
