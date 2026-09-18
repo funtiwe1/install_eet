@@ -1307,7 +1307,9 @@ def download_mods() -> int:
 def check_mods() -> int:
     return 1
 
-def install_fresh_bg2(settings) -> int :
+def install_fresh_bg2(settings,install = False) -> int :
+    log.info(install)
+    exit()
     log.info("========================================")
     base_dir = Path.cwd()
     dont_delete = getparamsfromsettings(settings,["scripts","dont_delete","arch_folder","bg2_distr"])
@@ -1323,26 +1325,35 @@ def install_fresh_bg2(settings) -> int :
     log.info("")
     log.info("Копирование:")
     copybg2ee(getbg2dist(settings),base_dir)
+
     # 3. Скачивание/распаковка модов
     check_mods()
 
-    return 0
-
-
-def full_install_fresh_bg2(settings) -> int:
-
-    # подготовка
-    install_fresh_bg2(settings)
-
-    # установка
-    log.info(getmodrange(settings))
-    start_mod, end_mod = getmodrange(settings)
-    install_mods(mods,start_mod,end_mod)
+    # 4. установка модов
+    if install :
+        log.info(getmodrange(settings))
+        start_mod, end_mod = getmodrange(settings)
+        install_mods(mods,start_mod,end_mod)
 
     return 0
 
 
-def install_bu_bg2(settings) -> int:
+# def full_install_fresh_bg2(settings) -> int:
+#
+#     # подготовка
+#     install_fresh_bg2(settings)
+#
+#     # установка
+#     log.info(getmodrange(settings))
+#     start_mod, end_mod = getmodrange(settings)
+#     install_mods(mods,start_mod,end_mod)
+#
+#     return 0
+
+
+def install_bu_bg2(settings,install = False) -> int:
+    log.info(install)
+    exit()
     log.info("========================================")
     base_dir = Path.cwd()
     #folders_delete = create_list_folder_to_delete(settings)
@@ -1371,20 +1382,27 @@ def install_bu_bg2(settings) -> int:
     # 3. Скачивание/распаковка модов
     mods = check_mods()
 
+    # 4. установка
+    if install:
+        log.info(getmodrange(settings))
+        start_mod, end_mod = getmodrange(settings)
+        install_mods(mods,start_mod,end_mod)
+
+
     return mods
 
 
-def full_install_bu_bg2(settings) -> int:
-
-    # подготовка
-    mods = install_bu_bg2(settings)
-
-    # установка
-    log.info(getmodrange(settings))
-    start_mod, end_mod = getmodrange(settings)
-    install_mods(mods,start_mod,end_mod)
-
-    return 0
+# def full_install_bu_bg2(settings) -> int:
+#
+#     # подготовка
+#     mods = install_bu_bg2(settings)
+#
+#     # установка
+#     log.info(getmodrange(settings))
+#     start_mod, end_mod = getmodrange(settings)
+#     install_mods(mods,start_mod,end_mod)
+#
+#     return 0
 
 def report() -> int:
     return 0
@@ -1584,28 +1602,53 @@ def main(argv: list[str] | None = None) -> int:
     setup_logging()
     ARCH_DIR.mkdir(parents=True, exist_ok=True)
 
+    # запраос обновления CSV
+    while True:
+        answer = input("\nНовый CSV загружен?: ").strip()
+
+        if (answer == "n") or (answer == "N"):
+            log.info("Остановка скрипта: новый CSV не загружен!")
+            return 0
+        if (answer == "y") or (answer == "Y"):
+            log.info("Подтвердили загрузку нового CSV!")
+            break
+
     log.info("========================================")
     log.info("Рабочая директория: %s", SCRIPT_DIR)
     log.info("Лог: %s", LOG_PATH)
     log.info("Папка архивов: %s", ARCH_DIR)
     log.info("CSV: %s", CSV_PATH)
 
-    if args.install_fresh_bg2:
-        log.info("Режим: свежая установка BG2EE (очистка от всего) и установка bg2ee (--install-fresh-bg2)")
+    if args.install_fresh_bg2 or args.full_install_fresh_bg2:
+        if args.install_fresh_bg2:
+            log.info("Режим: свежая установка BG2EE (очистка от всего) и установка bg2ee (--install-fresh-bg2)")
+        if args.full_install_fresh_bg2:
+            log.info("Режим: полная, автоматическая свежая установка BG2EE (очистка от всего, от модов, установка bg2ee, копирование и установка модов) (--full-install-fresh-bg2)")
+        while True:
+            answer = input("\nУдалить файлы и папки модов и игры?: ").strip()
+            if (answer == "n") or (answer == "N"):
+                log.info("Остановка скрипта: запретили удалять")
+                return 0
+            if (answer == "y") or (answer == "Y"):
+                log.info("Подтвердили удаленеие!")
+                break
         settings = parse_ini(INIPATH,"INSTALL_FRESH_BG2")
-        install_fresh_bg2(settings)
-    if args.full_install_fresh_bg2:
-        log.info("Режим: полная, автоматическая свежая установка BG2EE (очистка от всего, от модов, установка bg2ee, копирование и установка модов) (--full-install-fresh-bg2)")
-        settings = parse_ini(INIPATH,"FULL_INSTALL_FRESH_BG2")
-        full_install_fresh_bg2(settings)
-    if args.install_bu_bg2:
-        log.info("Режим: б/у установка BG2EE (очистка, моды оставлем, устанавливаем BG2EE) (--install-bu-bg2)")
+        install_fresh_bg2(settings,args.full_install_fresh_bg2)
+    # if args.full_install_fresh_bg2:
+    #     log.info("Режим: полная, автоматическая свежая установка BG2EE (очистка от всего, от модов, установка bg2ee, копирование и установка модов) (--full-install-fresh-bg2)")
+    #     settings = parse_ini(INIPATH,"FULL_INSTALL_FRESH_BG2")
+    #     full_install_fresh_bg2(settings)
+    if args.install_bu_bg2 or args.full_install_bu_bg2:
+        if args.install_bu_bg2:
+            log.info("Режим: б/у установка BG2EE (очистка, моды оставлем, устанавливаем BG2EE) (--install-bu-bg2)")
+        if args.full_install_bu_bg2:
+            log.info("Режим: полная автоматичская установка б/у BG2EE (очистка, моды оставлем, устанавливаем bg2ee и моды)  (--full-install-bu-bg2)")
         settings = parse_ini(INIPATH,"INSTALL_BU_BG2")
-        install_bu_bg2(settings)
-    if args.full_install_bu_bg2:
-        log.info("Режим: полная автоматичская установка б/у BG2EE (очистка, моды оставлем, устанавливаем bg2ee и моды)  (--full-install-bu-bg2)")
-        settings = parse_ini(INIPATH,"FULL_INSTALL_BU_BG2")
-        full_install_bu_bg2(settings)
+        install_bu_bg2(settings,args.full_install_bu_bg2)
+    # if args.full_install_bu_bg2:
+    #     log.info("Режим: полная автоматичская установка б/у BG2EE (очистка, моды оставлем, устанавливаем bg2ee и моды)  (--full-install-bu-bg2)")
+    #     settings = parse_ini(INIPATH,"FULL_INSTALL_BU_BG2")
+    #     full_install_bu_bg2(settings)
     if args.download_only:
         log.info("Режим: только проверка/скачивание (--download-only)")
     if args.check_only:
