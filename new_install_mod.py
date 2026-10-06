@@ -1,4 +1,38 @@
 
+
+
+
+function iscsvright
+try
+csv = read(mods.csv)
+csv_old = read(mods_old.csv)
+catch
+	say problem with csv, csv_old
+end
+
+if csv_old equal csv
+	say csv file not changed!
+	say you sure?
+	while true  
+		promt
+		if promt = Y 
+			return true
+		else if promt = N
+			return false
+	end
+else
+	say new csv file. Are you sure?
+	while true  
+		promt
+		if promt = Y 
+			return true
+		else if promt = N
+			return false
+end
+
+
+
+function check_csv
 try
 csv = read(mods.csv)
 catch
