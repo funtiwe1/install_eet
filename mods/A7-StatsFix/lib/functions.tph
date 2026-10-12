@@ -1,0 +1,128 @@
+// Attempts to fix the content of the specified IDS file.
+DEFINE_ACTION_FUNCTION fix_stats_ids
+STR_VAR
+  ids_file = ~~   // name of the IDS file to fix
+  base_path = ~~  // (optional) path of a base ids file
+RET
+  result
+BEGIN
+  OUTER_SET result = 0
+
+  ACTION_IF (NOT ~%ids_file%~ STR_EQ ~~) BEGIN
+    // loading base table content (if specified)
+    OUTER_SPRINT source_file ~%base_path%/%ids_file%~
+    ACTION_IF (NOT ~%base_path%~ STR_EQ ~~ && FILE_EXISTS ~%source_file%~) BEGIN
+      COPY ~%source_file%~ ~%source_file%~
+        LPF cache_ids_entries
+          RET_ARRAY
+            source_labels = lookup_table
+            source_table = ids_table
+        END
+      BUT_ONLY
+    END
+
+    // reconstructing game table
+    COPY_EXISTING ~%ids_file%~ ~override~
+      READ_ASCII 0 backup (BUFFER_LENGTH)
+      LPF cache_ids_entries
+        RET_ARRAY
+          cur_labels = lookup_table
+          cur_table = ids_table
+      END
+
+      SET start_pos = INDEX_BUFFER(~^[ %TAB%]*[0-9]+[ %TAB%]+[^ %TAB%%WNL%]+~)
+      PATCH_IF (start_pos >= 0) BEGIN
+        SET len = BUFFER_LENGTH - start_pos
+        DELETE_BYTES start_pos len
+      END ELSE BEGIN
+        DELETE_BYTES 0 BUFFER_LENGTH
+        SET start_pos = STRING_LENGTH ~%WNL%~
+        INSERT_BYTES 0 start_pos
+        WRITE_ASCIIE 0 ~%WNL%~ (start_pos)
+      END
+
+      // building new ids map: new_table
+      // 1. clone base definitions
+      FOR (id = 0; id < 256; ++id) BEGIN
+        PATCH_IF (VARIABLE_IS_SET $source_table(~%id%~ ~count~)) BEGIN
+          SET new_count = 0
+          SET count = $source_table(~%id%~ ~count~)
+          FOR (j = 0; j < count; ++j) BEGIN
+            SPRINT label $source_table(~%id%~ ~%j%~)
+            PATCH_IF (NOT VARIABLE_IS_SET $new_labels(~%label%~)) BEGIN
+              SPRINT $new_table(~%id%~ ~%new_count%~) ~%label%~
+              SET $new_labels(~%label%~) = 1
+              SET new_count += 1
+            END
+          END
+          SET $new_table(~%id%~ ~count~) = new_count
+        END
+      END
+      // 2. insert valid definitions from current game installation
+      FOR (id = 0; id < 256; ++id) BEGIN
+        PATCH_IF (VARIABLE_IS_SET $cur_table(~%id%~ ~count~)) BEGIN
+          SET count = $cur_table(~%id%~ ~count~)
+          FOR (j = 0; j < count; ++j) BEGIN
+            SPRINT label $cur_table(~%id%~ ~%j%~)
+            PATCH_IF (NOT VARIABLE_IS_SET $new_labels(~%label%~)) BEGIN
+              SET new_count = VARIABLE_IS_SET $new_table(~%id%~ ~count~) ? $new_table(~%id%~ ~count~) : 0
+              SPRINT $new_table(~%id%~ ~%new_count%~) ~%label%~
+              SET $new_table(~%id%~ ~count~) = new_count + 1
+              SET $new_labels(~%label%~) = 1
+            END
+          END
+        END
+      END
+
+      // writing table data
+      FOR (id = 0; id < 256; ++id) BEGIN
+        PATCH_IF (VARIABLE_IS_SET $new_table(~%id%~ ~count~)) BEGIN
+          SET count = $new_table(~%id%~ ~count~)
+          FOR (j = 0; j < count; ++j) BEGIN
+            SPRINT label $new_table(~%id%~ ~%j%~)
+            SPRINT line ~%id% %label%%WNL%~
+            SET len = STRING_LENGTH ~%line%~
+            INSERT_BYTES start_pos len
+            WRITE_ASCIIE start_pos ~%line%~ (len)
+            SET start_pos += len
+          END
+        END
+      END
+
+      // verification pass
+      SET pass = 1
+      REPLACE_EVALUATE ~^[ %TAB%]*\([0-9]+\)[ %TAB%]+\([^ %TAB%%WNL%]+\)~ BEGIN
+        SET pass = pass && IS_AN_INT ~MATCH1~ && NOT IS_AN_INT ~MATCH2~
+      END ~%MATCH0%~
+
+      PATCH_IF (NOT pass) BEGIN
+        // restoring original content
+        SET len = STRING_LENGTH ~%backup%~
+        DELETE_BYTES 0 start_pos
+        INSERT_BYTES 0 len
+        WRITE_ASCIIE 0 ~%backup%~ (len)
+      END ELSE BEGIN
+        SET result = 1
+      END
+    BUT_ONLY
+END
+END
+
+
+// Used internally to parse IDS content.
+DEFINE_PATCH_FUNCTION cache_ids_entries
+RET_ARRAY
+  lookup_table  // quick lookup for ids labels
+  ids_table     // contains full ids definitions; labels are stored in a indexed subarray (used "count" key to check number of labels)
+BEGIN
+  REPLACE_EVALUATE ~^[ %TAB%]*\([0-9]+\)[ %TAB%]+\([^ %TAB%%WNL%]+\)~ BEGIN
+    PATCH_IF (IS_AN_INT ~MATCH1~ && NOT IS_AN_INT ~MATCH2~) BEGIN
+      SET id = MATCH1
+      SPRINT label ~%MATCH2%~
+      SET $lookup_table(~%label%~) = 1
+      SET index = VARIABLE_IS_SET $ids_table(~%id%~ ~count~) ? $ids_table(~%id%~ ~count~) : 0
+      SPRINT $ids_table(~%id%~ ~%index%~) ~%label%~
+      SET $ids_table(~%id%~ ~count~) = index + 1
+    END
+  END ~%MATCH0%~
+END

@@ -6,6 +6,7 @@ SETUP-*.exe
 *.csv
 *.py
 *.sh
+funtik.ini
 install_mods.log
 !/characters
 !/characters/*

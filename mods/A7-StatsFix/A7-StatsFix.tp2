@@ -1,0 +1,58 @@
+BACKUP ~weidu_external/backup/A7-StatsFix~
+AUTHOR ~Argent77~
+VERSION ~1.0~
+
+ALWAYS
+  // root folder for mutable data
+  OUTER_TEXT_SPRINT WORK_FOLDER ~weidu_external~
+
+  ACTION_IF ((FILE_EXISTS ~dlc/sod-dlc.zip~) OR (FILE_EXISTS ~sod-dlc.zip~)) THEN BEGIN
+    FAIL @100 // DLC Merger is required before mods can be installed on this game. Check the readme for more information and a link to download DLC Merger.
+  END
+END
+
+README ~A7-StatsFix/readme-%LANGUAGE%.txt~ ~A7-StatsFix/readme.txt~
+
+LANGUAGE ~English~
+         ~english~
+         ~A7-StatsFix/languages/english/setup.tra~
+
+BEGIN @1  // Fix corruption from the "Detectable Spells" library
+REQUIRE_PREDICATE (FILE_EXISTS_IN_GAME ~stats.ids~ && RESOURCE_CONTAINS ~stats.ids~ ~^[0-9]+[ %TAB%]+[0-9+][ %TAB%]*[%WNL%]~) @101  // No file corruption detected.
+NO_LOG_RECORD
+
+INCLUDE ~%MOD_FOLDER%/lib/functions.tph~
+
+// base table depends on the game
+ACTION_IF (GAME_IS ~iwd2~) BEGIN
+  ACTION_IF (FILE_EXISTS ~IEex.dll~) BEGIN
+    OUTER_SPRINT stats_folder ~iwd2ee~
+  END ELSE BEGIN
+    OUTER_SPRINT stats_folder ~iwd2~
+  END
+END ELSE ACTION_IF (GAME_IS ~pst~) BEGIN
+  OUTER_SPRINT stats_folder ~pst~
+END ELSE ACTION_IF (GAME_IS ~bg1 totsc iwd how totlm~) BEGIN
+  OUTER_SPRINT stats_folder ~bg~
+END ELSE ACTION_IF (GAME_IS ~bgee iwdee~) BEGIN
+  OUTER_SPRINT stats_folder ~bgee~
+END ELSE ACTION_IF (GAME_IS ~bg2ee eet~) BEGIN
+  OUTER_SPRINT stats_folder ~bg2ee~
+END ELSE ACTION_IF (GAME_IS ~pstee~) BEGIN
+  OUTER_SPRINT stats_folder ~pstee~
+END ELSE BEGIN
+  OUTER_SPRINT stats_folder ~bg2~
+END
+
+LAF fix_stats_ids
+  STR_VAR
+    ids_file = ~stats.ids~
+    base_path = EVAL ~%MOD_FOLDER%/ids/%stats_folder%~
+  RET result
+END
+
+ACTION_IF (result) BEGIN
+  PRINT @102  // File corruption in STATS.IDS successfully fixed.
+END ELSE BEGIN
+  WARN @103 // Could not fix file corruption in STATS.IDS.
+END

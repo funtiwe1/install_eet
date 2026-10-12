@@ -1,0 +1,6 @@
+@1 = ~Fix corruption from the "Detectable Spells" library~
+
+@100 = ~DLC Merger is required before mods can be installed on this game. Check the readme for more information and a link to download DLC Merger.~
+@101 = ~No file corruption detected in STATS.IDS.~
+@102 = ~File corruption in STATS.IDS successfully fixed.~
+@103 = ~Could not fix file corruption in STATS.IDS.~
